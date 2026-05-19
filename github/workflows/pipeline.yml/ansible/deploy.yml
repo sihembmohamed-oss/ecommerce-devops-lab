@@ -1,0 +1,75 @@
+---
+- name: Deploy ecommerce app
+  hosts: web
+  become: yes
+
+  tasks:
+    - name: Install Docker dependencies
+      yum:
+        name:
+          - docker
+          - python3-pip
+        state: present
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Install Docker Compose
+      pip:
+        name: docker-compose
+        executable: pip3
+
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    - name: Create app directory
+      file:
+        path: /app
+        state: directory
+
+    - name: Copy docker-compose file
+      copy:
+        dest: /app/docker-compose.yml
+        content: |
+          version: '3'
+          services:
+            nginx:
+              image: nginx:alpine
+              ports:
+                - "80:80"
+              depends_on:
+                - app
+
+            app:
+              image: node:18-alpine
+              working_dir: /app
+              command: sh -c "npm init -y && npm install express && node server.js"
+              volumes:
+                - /app:/app
+              environment:
+                - MONGO_URL=mongodb://mongo:27017/ecommerce
+
+            mongo:
+              image: mongo:6
+              ports:
+                - "27017:27017"
+
+    - name: Create simple Node.js app
+      copy:
+        dest: /app/server.js
+        content: |
+          const express = require('express');
+          const app = express();
+          app.get('/', (req, res) => {
+            res.send('<h1>E-Commerce Store</h1><p>Laptop $1200</p><p>Phone $800</p>');
+          });
+          app.listen(3000, () => console.log('Running on port 3000'));
+
+    - name: Start containers
+      shell: docker-compose -f /app/docker-compose.yml up -d
