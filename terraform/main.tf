@@ -1,4 +1,3 @@
-# Variables
 variable "aws_region" {
   default = "us-east-1"
 }
@@ -7,13 +6,11 @@ variable "key_name" {
   description = "SSH Key Pair name in AWS"
 }
 
-# VPC
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
   tags = { Name = "ecommerce-vpc" }
 }
 
-# Subnets
 resource "aws_subnet" "public_a" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
@@ -30,13 +27,11 @@ resource "aws_subnet" "public_b" {
   tags = { Name = "public-subnet-b" }
 }
 
-# Internet Gateway
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
   tags   = { Name = "ecommerce-igw" }
 }
 
-# Route Table
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
   route {
@@ -55,7 +50,6 @@ resource "aws_route_table_association" "b" {
   route_table_id = aws_route_table.public.id
 }
 
-# Security Group - ALB
 resource "aws_security_group" "alb_sg" {
   vpc_id = aws_vpc.main.id
   ingress {
@@ -73,7 +67,6 @@ resource "aws_security_group" "alb_sg" {
   tags = { Name = "alb-sg" }
 }
 
-# Security Group - EC2
 resource "aws_security_group" "ec2_sg" {
   vpc_id = aws_vpc.main.id
   ingress {
@@ -97,7 +90,6 @@ resource "aws_security_group" "ec2_sg" {
   tags = { Name = "ec2-sg" }
 }
 
-# EC2 Instances
 resource "aws_instance" "web" {
   count                  = 2
   ami                    = "ami-0c02fb55956c7d316"
@@ -108,7 +100,6 @@ resource "aws_instance" "web" {
   tags = { Name = "ecommerce-web-${count.index}" }
 }
 
-# ALB
 resource "aws_lb" "main" {
   name               = "ecommerce-alb"
   internal           = false
